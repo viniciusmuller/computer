@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <stdbool.h>
 
 #define MEMORY_SIZE 16
@@ -34,12 +35,13 @@ typedef enum instruction {
   LDA = 5,
   STA = 6,
   HLT = 7,
-  CMP = 8,
+  TST = 8,
   JPZ = 9,
-  ADD = 10
+  ADD = 10,
+  OUT = 11
 } instruction;
 
-void interpret(cpu_state *cpu) {
+void cycle(cpu_state *cpu) {
   if (cpu->offset + 2 == MEMORY_SIZE) {
     cpu->halted = true;
     return;
@@ -56,6 +58,7 @@ void interpret(cpu_state *cpu) {
   } 
 
   if (instruction == HLT) {
+    printf("HLT at %x\n", cpu->offset);
     cpu->halted = true;
   } 
 
@@ -63,11 +66,11 @@ void interpret(cpu_state *cpu) {
     cpu->reg += cpu->memory[address];
   }
 
-  if (instruction == JPZ) {
+  if (instruction == JPZ && cpu->reg == 0) {
     cpu->offset = address;
   }
 
-  if (instruction == CMP) {
+  if (instruction == TST) {
     if (cpu->reg == cpu->memory[address]) {
       cpu->reg = 0;
     }
@@ -89,6 +92,10 @@ void interpret(cpu_state *cpu) {
     cpu->reg = cpu->memory[address];
   }
 
+  if (instruction == OUT) {
+    printf("OUT at %x: %d\n", cpu->offset, cpu->reg);
+  }
+
   if (instruction == STA) {
     cpu->memory[address] = cpu->reg;
   }
@@ -101,14 +108,22 @@ void print_memory(int8_t *memory) {
 }
 
 int main(int argc, char **argv) {
-  if (argc <= 1) {
-    puts("Expecting filename as argument");
-    return 1;
+  bool dump_memory = false;
+  int opt;
+  char *file_name = NULL;
+
+  while ((opt = getopt(argc, argv, "df")) != -1) {
+      switch (opt) {
+      case 'd': dump_memory = true; break;
+      default:
+          fprintf(stderr, "Usage: %s [-d] <file>\n", argv[0]);
+          exit(EXIT_FAILURE);
+      }
   }
 
-  FILE *f = fopen(argv[1], "r");
+  FILE *f = fopen(argv[optind], "r");
   if (f == NULL) {
-    printf("Could not open file: %s\n", argv[1]);
+    printf("Could not open file: %s\n", argv[optind]);
     return 1;
   }
 
@@ -124,12 +139,16 @@ int main(int argc, char **argv) {
   print_memory(cpu->memory);
 
   do {
-    interpret(cpu);
+    cycle(cpu);
   }
   while (!cpu->halted);
 
-  puts("Program finished!");
-  print_memory(cpu->memory);
+  puts("Execution finished!");
+
+  if (dump_memory) {
+    puts("Dumping memory:");
+    print_memory(cpu->memory);
+  }
 
   fclose(f);
   return 0;
