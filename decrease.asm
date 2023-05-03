@@ -1,5 +1,8 @@
-MEMORY:
-  -- Initial input
+  ; Program that decreases the number at `0x1` until zero.
+  ; TODO: add support for named variables (currently the label on the left is
+  ; not used)
+  ; Initial input
+  0x0: 0x0
   0x1: 0xB
   0x2: 0x0
   0x3: 0x0
@@ -12,22 +15,24 @@ MEMORY:
   0xA: 0x0
   0xB: 0x0
   0xC: 0x0
-  -- Program constants
+  ; Program constants
   0xD: 0x0
   0xE: 0x1
   0xF: 0xFF
 
-MAIN:
-  LDA 0x1;
-  TST 0xD; -- 0x0
-  JZ END;
-  JMP DECREASE;
+label MAIN:
+  LDA 0x1
+  JMP PROG
 
-DECREASE:
-  ADD 0xF; -- 0xFF
-  ADD 0xE; -- 0x1
-  OUT;
-  JMP MAIN;
+label PROG:
+  TST 0xD
+  OUT
+  JPZ END
+  JMP DECREASE
 
-END:
-  HLT;
+label DECREASE:
+  ADD 0xF ; 0xFF
+  JMP PROG
+
+label END:
+  HLT

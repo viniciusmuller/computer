@@ -28,21 +28,22 @@ cpu_state *create_cpu(int8_t *memory, uint8_t *firmware) {
 };
 
 typedef enum instruction {
-  AND = 1,
-  OR = 2,
-  XOR = 3,
-  NOT = 4,
-  LDA = 5,
-  STA = 6,
-  HLT = 7,
-  TST = 8,
-  JPZ = 9,
-  ADD = 10,
-  OUT = 11
+  AND = 0x1,
+  OR  = 0x2,
+  XOR = 0x3,
+  NOT = 0x4,
+  LDA = 0x5,
+  STA = 0x6,
+  HLT = 0x7,
+  TST = 0x8,
+  JPZ = 0x9,
+  ADD = 0xA,
+  OUT = 0xB,
+  JMP = 0xC
 } instruction;
 
 void cycle(cpu_state *cpu) {
-  if (cpu->offset + 2 == MEMORY_SIZE) {
+  if (cpu->offset + 2 >= FIRMWARE_SIZE) {
     cpu->halted = true;
     return;
   }
@@ -70,6 +71,10 @@ void cycle(cpu_state *cpu) {
     cpu->offset = address;
   }
 
+  if (instruction == JMP) {
+    cpu->offset = address;
+  }
+
   if (instruction == TST) {
     if (cpu->reg == cpu->memory[address]) {
       cpu->reg = 0;
@@ -93,12 +98,22 @@ void cycle(cpu_state *cpu) {
   }
 
   if (instruction == OUT) {
-    printf("OUT at %x: %d\n", cpu->offset, cpu->reg);
+    printf("%d\n", cpu->reg);
   }
 
   if (instruction == STA) {
     cpu->memory[address] = cpu->reg;
   }
+}
+
+void print_firmware(uint8_t *firmware) {
+  puts("Firmware:");
+
+  for (int i = 0; i < FIRMWARE_SIZE; i++) {
+    printf("%x = %x\n", i, firmware[i]);
+  }
+
+  puts("");
 }
 
 void print_memory(int8_t *memory) {
@@ -130,8 +145,10 @@ int main(int argc, char **argv) {
   int8_t *memory = malloc(MEMORY_SIZE);
   fread(memory, sizeof(int8_t), MEMORY_SIZE, f);
 
-  uint8_t *firmware = malloc(FIRMWARE_SIZE);
+  uint8_t *firmware = malloc(FIRMWARE_SIZE * sizeof(uint8_t));
   fread(firmware, sizeof(uint8_t), FIRMWARE_SIZE, f);
+
+  /* print_firmware(firmware); */
 
   cpu_state *cpu = create_cpu(memory, firmware);
 

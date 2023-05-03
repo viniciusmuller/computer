@@ -22,6 +22,7 @@
                 {
                   # https://devenv.sh/reference/options/
                   packages = with pkgs; [
+                    python310
                     just
                     gcc
                     hexedit
